@@ -1,0 +1,72 @@
+name: Alpha Deploy
+
+# Per-PR ephemeral alpha environments. Deployed on PR open and each subsequent
+# push; torn down on PR close (merged or otherwise). Each PR gets its own
+# dynamic GitHub Environment named `alpha-pr-<N>`. See docs/process/environments.md.
+#
+# Filters to PRs targeting `beta/v*` branches — those are the issue PRs in
+# this methodology. PRs to other targets (uncommon) don't get alpha deploys.
+#
+# The deploy and teardown steps are placeholders. Replace with your IaC invocations.
+
+on:
+  pull_request:
+    types: [opened, synchronize, closed]
+    branches:
+      - 'beta/v*'
+
+concurrency:
+  group: alpha-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true  # cancel stale deploys when a new push arrives on the PR
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.event.action != 'closed'
+    name: Deploy alpha
+    runs-on: ubuntu-latest
+    environment:
+      name: alpha-pr-${{ github.event.pull_request.number }}
+      url: https://pr-${{ github.event.pull_request.number }}.alpha.example.com
+    steps:
+      - name: Deploy via IaC
+        run: |
+          echo "::warning::Placeholder alpha deploy step — replace with your IaC invocation."
+          echo ""
+          echo "The deployed instance should be named pr-${PR_NUMBER}.alpha.<app> or similar"
+          echo "(see docs/process/environments.md § Alpha)."
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+
+  teardown:
+    if: github.event.action == 'closed'
+    name: Tear down alpha
+    runs-on: ubuntu-latest
+    # No special permissions: `GITHUB_TOKEN` cannot delete environment
+    # objects (no `administration` permission is available at the workflow
+    # level). The DELETE attempt below is best-effort (`|| true`); the env
+    # object remains as an orphan after PR close until cleaned up manually.
+    # See environments.md's "Alpha-env staleness sweep" open question.
+    steps:
+      - name: Tear down deployed instance via IaC
+        run: |
+          echo "::warning::Placeholder alpha teardown step — replace with your IaC invocation."
+          echo ""
+          echo "Tear down the deployed instance for PR #${PR_NUMBER}."
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+
+      - name: Delete dynamic GitHub Environment
+        run: |
+          # Best-effort: deletes the alpha-pr-<N> environment object created by
+          # the deploy job. Silently no-ops if the environment doesn't exist
+          # (e.g., teardown firing after a deploy that never ran successfully).
+          gh api -X DELETE \
+            "repos/${REPO}/environments/alpha-pr-${PR_NUMBER}" \
+            >/dev/null 2>&1 || true
+        env:
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

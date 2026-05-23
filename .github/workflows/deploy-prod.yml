@@ -1,0 +1,49 @@
+name: Prod Deploy
+
+# Deploys the main branch to production via IaC. On success, the Release
+# workflow fires to publish the GitHub Release and close the milestone —
+# this chain enforces the methodology's definition of `Released` (merged to
+# main AND deployed to production). See docs/process/release.md § Publication.
+#
+# The deploy step below is a placeholder. Replace it with your IaC invocation
+# (terraform, kubectl, aws-cli, serverless, etc.). Until it's replaced, the
+# deploy succeeds trivially and the chain to Release fires, so the end-to-end
+# wiring can be exercised from the start.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # allow manual retry of a failed or held deploy
+
+concurrency:
+  group: prod-deploy
+  cancel-in-progress: false  # never cancel an in-flight production deploy
+
+permissions:
+  contents: read
+  # Add provider-specific permissions when wiring up real IaC.
+  # OIDC example (recommended over long-lived secrets):
+  #   id-token: write
+
+jobs:
+  deploy:
+    name: Deploy to prod
+    runs-on: ubuntu-latest
+    environment: prod  # see docs/process/environments.md
+    steps:
+      # Add actions/checkout (SHA-pinned per the SHA-pinning convention) when
+      # the deploy step needs repo contents. Skipped here because the placeholder
+      # doesn't require it.
+
+      - name: Deploy via IaC
+        run: |
+          echo "::warning::Placeholder deploy step — replace with your IaC invocation."
+          echo ""
+          echo "Examples:"
+          echo "  terraform -chdir=infra apply -auto-approve"
+          echo "  aws ecs update-service --cluster prod --service \$APP --force-new-deployment"
+          echo "  kubectl apply -f k8s/prod/"
+          echo "  serverless deploy --stage prod"
+          echo ""
+          echo "Until this is wired up, the deploy succeeds trivially and the Release chain fires."

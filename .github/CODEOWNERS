@@ -1,0 +1,5 @@
+# Every file in this repo is owned by @Ryan-Small.
+# GitHub uses this to auto-request review on every PR.
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+*       @Ryan-Small

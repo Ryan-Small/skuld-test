@@ -1,0 +1,13 @@
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Editor swap files
+*.swp
+*.swo
+*~
+
+# Local environment files (often contain secrets)
+.env
+.env.local
+.env.*.local

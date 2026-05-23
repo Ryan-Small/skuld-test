@@ -1,0 +1,120 @@
+name: Beta Deploy
+
+# Deploys beta branches to beta via IaC. Each push to a beta/v* branch
+# (branch creation or issue-branch merge into it) updates the corresponding
+# beta environment. The single `beta` GitHub Environment is the policy holder;
+# the deployed instance is version-stamped (vX.Y.Z.beta.<app>) by the IaC.
+# See docs/process/environments.md.
+#
+# When the beta/v* → main PR closes (merged to ship, or closed-without-
+# merge to abandon), the teardown job removes the version-stamped beta
+# instance. The shared `beta` GitHub Environment policy holder remains for
+# future releases — only the deployed instance comes down.
+#
+# The deploy and teardown steps are placeholders. Replace with your IaC.
+
+on:
+  push:
+    branches:
+      - 'beta/v*'
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: beta-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: false  # never cancel an in-flight beta deploy
+
+permissions:
+  contents: write        # `gh release edit` refreshes the draft release notes
+  issues: read           # release-notes.sh reads linked-issue labels for categorization
+  pull-requests: read    # release-notes.sh reads PR bodies/labels via gh api
+  # Add provider-specific permissions when wiring up real IaC.
+
+jobs:
+  deploy:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    name: Deploy to beta
+    runs-on: ubuntu-latest
+    environment: beta  # see docs/process/environments.md
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        # Needed to invoke scripts/release-notes.sh in the refresh step.
+
+      - name: Extract version
+        id: version
+        run: |
+          # refs/heads/beta/v1.2.3 → v1.2.3
+          TAG="${GITHUB_REF#refs/heads/beta/}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy via IaC
+        run: |
+          echo "::warning::Placeholder beta deploy step — replace with your IaC invocation."
+          echo ""
+          echo "The deployed instance should be named ${TAG}.beta.<app> or similar"
+          echo "(see docs/process/environments.md § Beta)."
+          echo ""
+          echo "Examples:"
+          echo "  terraform -chdir=infra apply -auto-approve -var=stage=beta -var=version=${TAG}"
+          echo "  kubectl apply -f k8s/beta/ --namespace beta-${TAG//./-}"
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+
+      - name: Refresh draft release notes
+        run: |
+          # Keep the draft Release's notes current as issue PRs land on the
+          # beta branch. No-op (with a notice) if no draft Release exists —
+          # e.g. the release was cut without cut-release.yml. Non-fatal: the
+          # deploy already happened; a notes-refresh problem must not fail it.
+          #
+          # Notes are built by scripts/release-notes.sh — see the script
+          # header for the categorization scheme and the label precedence
+          # rule (see also docs/process/release.md § Release notes).
+          IS_DRAFT=$(gh release view "$TAG" --repo "$REPO" --json isDraft --jq .isDraft 2>/dev/null || true)
+          if [[ "$IS_DRAFT" != "true" ]]; then
+            echo "::notice::No draft Release '$TAG' — skipping notes refresh. Cut the release with cut-release.yml to get a draft."
+            exit 0
+          fi
+          NOTES=$(scripts/release-notes.sh "$TAG" "beta/$TAG" 2>/dev/null || true)
+          if [[ -z "$NOTES" ]]; then
+            echo "::warning::Could not build notes for $TAG."
+            exit 0
+          fi
+          if printf '%s' "$NOTES" | gh release edit "$TAG" --repo "$REPO" --notes-file - >/dev/null 2>&1; then
+            echo "Refreshed draft release notes for $TAG."
+          else
+            echo "::warning::Failed to write refreshed notes for $TAG."
+          fi
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  teardown:
+    if: >-
+      github.event_name == 'pull_request' &&
+      startsWith(github.event.pull_request.head.ref, 'beta/v')
+    name: Tear down beta
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract version
+        id: version
+        run: |
+          # head.ref is beta/v1.2.3 → v1.2.3
+          TAG="${HEAD_REF#beta/}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+
+      - name: Tear down deployed instance via IaC
+        run: |
+          echo "::warning::Placeholder beta teardown step — replace with your IaC invocation."
+          echo ""
+          echo "Tear down the deployed instance for ${TAG}.beta.<app>."
+          echo "The shared 'beta' GitHub Environment policy holder is NOT deleted —"
+          echo "only the version-stamped deployed instance comes down."
+        env:
+          TAG: ${{ steps.version.outputs.tag }}

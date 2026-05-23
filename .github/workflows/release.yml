@@ -1,0 +1,155 @@
+name: Release
+
+# Publishes the GitHub Release at vX.Y.Z and closes the matching milestone
+# after a successful production deploy. Triggered by the Deploy workflow's
+# success on main; the chain enforces the methodology's definition of
+# `Released` (merged to main AND deployed to production).
+#
+# Branch suffix, tag, and milestone all use the same vX.Y.Z form
+# (see docs/process/release.md).
+
+on:
+  workflow_run:
+    workflows: ["Prod Deploy"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: read  # required for `gh api repos/.../commits/<sha>/pulls`
+
+jobs:
+  publish:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        # Needed only for the fallback notes-generation path in `Publish
+        # Release` (when no draft exists); kept unconditional because
+        # the cost is negligible and the conditional branch is small.
+
+      - name: Identify release context
+        id: ctx
+        run: |
+          # Find the PR whose merge produced this commit on main.
+          PR_DATA=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq '.[0] // empty')
+          if [[ -z "$PR_DATA" ]]; then
+            echo "::notice::No PR associated with $SHA — likely a direct push. Skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          HEAD_REF=$(echo "$PR_DATA" | jq -r .head.ref)
+          if [[ ! "$HEAD_REF" =~ ^beta/v ]]; then
+            echo "::notice::Source branch was '$HEAD_REF' — not a beta/v* PR. Skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          TAG="${HEAD_REF#beta/}"
+          # Idempotency: skip only if a *published* Release already exists.
+          # A draft (from cut-release.yml) is expected — it gets published below.
+          if [[ "$(gh release view "$TAG" --repo "$REPO" --json isDraft --jq .isDraft 2>/dev/null || true)" == "false" ]]; then
+            echo "::notice::Release $TAG already published; nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+        env:
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Release
+        if: steps.ctx.outputs.skip == 'false'
+        run: |
+          # Publish the draft Release created by cut-release.yml. Its notes
+          # were kept current by deploy-beta.yml through the release cycle, so
+          # they are preserved as-is — not regenerated. If no draft exists
+          # (release cut without the workflow), create the Release fresh.
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$REPO" --draft=false --target "$SHA"
+            echo "Published draft Release $TAG"
+          else
+            NOTES=$(scripts/release-notes.sh "$TAG" "$SHA")
+            printf '%s' "$NOTES" | gh release create "$TAG" --repo "$REPO" \
+              --target "$SHA" --title "Release $TAG" --notes-file -
+            echo "Created and published Release $TAG (no draft existed)"
+          fi
+        env:
+          TAG: ${{ steps.ctx.outputs.tag }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Close milestone
+        if: steps.ctx.outputs.skip == 'false'
+        run: |
+          MILESTONE_NUMBER=$(gh api "repos/$REPO/milestones?state=open" \
+            --jq ".[] | select(.title == \"$TAG\") | .number")
+          if [[ -z "$MILESTONE_NUMBER" ]]; then
+            echo "::warning::No open milestone named '$TAG' found; skipping closure."
+            exit 0
+          fi
+          gh api "repos/$REPO/milestones/$MILESTONE_NUMBER" -X PATCH -f state=closed >/dev/null
+          echo "Closed milestone #$MILESTONE_NUMBER ($TAG)"
+        env:
+          TAG: ${{ steps.ctx.outputs.tag }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Close milestone issues
+        if: steps.ctx.outputs.skip == 'false'
+        run: |
+          # Closes every open issue in the milestone — issues stay open through
+          # beta and close only here, at release. Issues are repository-owned,
+          # so the built-in GITHUB_TOKEN can close them.
+          #
+          # The Project `Status` → `Released` sweep is NOT done here: Projects v2
+          # are account-owned and out of a workflow token's reach. That sweep is
+          # the local `scripts/close-release.sh` script — see docs/process/release.md.
+          #
+          # Non-fatal throughout: the Release and milestone are already done, so
+          # an issue-close problem must not fail the job.
+          MS_NUMBER=$(gh api "repos/$REPO/milestones?state=all" \
+            --jq ".[] | select(.title == \"$TAG\") | .number" 2>/dev/null || true)
+          if [[ -z "$MS_NUMBER" ]]; then
+            echo "::warning::No milestone '$TAG' found — cannot close its issues."
+            exit 0
+          fi
+
+          ISSUES=$(gh api --paginate "repos/$REPO/issues?milestone=$MS_NUMBER&state=open" \
+            --jq '.[] | select(.pull_request == null) | .number' 2>/dev/null || true)
+          if [[ -z "$ISSUES" ]]; then
+            echo "No open issues in milestone '$TAG'."
+            exit 0
+          fi
+
+          for N in $ISSUES; do
+            if gh issue close "$N" --repo "$REPO" --comment "Released in $TAG." >/dev/null 2>&1; then
+              echo "Closed issue #$N"
+            else
+              echo "::warning::Failed to close issue #$N."
+            fi
+          done
+        env:
+          TAG: ${{ steps.ctx.outputs.tag }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summarize
+        if: steps.ctx.outputs.skip == 'false'
+        run: |
+          {
+            echo "## Release published"
+            echo ""
+            echo "- Tag: \`$TAG\`"
+            echo "- Target SHA: \`$SHA\`"
+            echo "- [View release]($SERVER/$REPO/releases/tag/$TAG)"
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          TAG: ${{ steps.ctx.outputs.tag }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          REPO: ${{ github.repository }}
+          SERVER: ${{ github.server_url }}

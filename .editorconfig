@@ -1,0 +1,25 @@
+# EditorConfig — https://editorconfig.org/
+# Tells editors how to format files in this repo. Most modern editors
+# either support this natively or via plugin.
+
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# Markdown uses trailing whitespace as a line-break signal — don't strip it.
+[*.md]
+trim_trailing_whitespace = false
+
+# YAML convention is 2-space — most tooling and readers assume it.
+[*.{yml,yaml}]
+indent_size = 2
+
+# Makefiles require literal tabs in recipes.
+[Makefile]
+indent_style = tab

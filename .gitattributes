@@ -1,0 +1,12 @@
+# Normalize line endings — all text files use LF, regardless of OS.
+# Prevents the Windows-CRLF / Unix-LF foot-guns that break shell scripts
+# and produce diff noise.
+* text=auto eol=lf
+
+# Shell scripts must be LF or the shebang breaks on Unix.
+*.sh text eol=lf
+
+# Mark docs as documentation for GitHub linguist (keeps the repo's
+# language stats from being dominated by Markdown).
+docs/** linguist-documentation
+*.md linguist-documentation

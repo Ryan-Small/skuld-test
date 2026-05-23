@@ -1,0 +1,102 @@
+name: Bug Report
+description: Report a defect found in production — an existing capability that
+  shipped isn't working as it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Use this template only for defects found in production — an existing capability that shipped isn't working as it should (broken, mishandles input, missing edge case).**
+
+        - New or expanded user-visible behavior wanted? → that's a **Feature**.
+        - Internal work (refactor, dependency upgrade, infra, doc) with no user-visible change? → that's a **Task**.
+        - Defect found before release (test environment, CI failure, stakeholder UAT before release)? → that's **rework on the original feature or task issue**, not a new bug. Reopen the originating issue.
+
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: Problem statement
+      description: |
+        The defect and its user-visible impact. Cover:
+        - Who is affected
+        - What is happening (in user-experience terms; technical detail goes in Actual behavior below)
+        - Why it hurts
+
+        Describe the impact, not the fix.
+        The problem statement is the evidence triage uses to assign priority.
+      placeholder: |
+        Users running action X receive error Y instead of the expected outcome.
+        They retry repeatedly or abandon the workflow, leading to duplicate
+        records and lost confidence in the system.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: |
+        What the system SHOULD do, expressed as a Gherkin scenario. Reference the violated spec or feature file if you know which one.
+      value: |
+        - [ ] Scenario: <description>
+          - **Given** <precondition>
+          - **When** <action>
+          - **Then** <expected outcome>
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual behavior
+      description: |
+        What the system actually does. Describe only the divergent clause(s); **Given** and **When** are assumed to match Expected unless you list them.
+
+        If only **Then** diverges, write just that clause (the default). If **Given** or **When** also diverge, list those as well.
+
+        Paste error messages, stack traces, screenshots, or logs verbatim in fenced code blocks if useful.
+      value: |
+        - **Then** <actual (incorrect) outcome>
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to reproduce
+      description: |
+        Minimal sequence that triggers the bug. Concrete commands or API calls are ideal — a future regression test will be derived from this.
+      placeholder: |
+        1. <action with specifics>
+        2. <next action>
+        3. Observe <unexpected result>
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround (optional)
+      description: |
+        Temporary solution or mitigation that avoids the bug while a fix is pending. Helpful for other users hitting the same issue and informs triage on urgency.
+      placeholder: |
+        e.g., Until <fix> lands, users can <alternative action> to achieve <desired outcome>.
+
+  - type: input
+    id: version
+    attributes:
+      label: Affected version (optional)
+      description: Version, build, or commit SHA where the bug was observed.
+      placeholder: "v0.1.0 or commit abc1234"
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References (optional)
+      description: |
+        Links to relevant specs, features, issues, or external materials.
+      placeholder: |
+        - None

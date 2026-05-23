@@ -1,0 +1,52 @@
+title: "[Idea]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Use this template to propose changes or extensions to the methodology, conventions, or template structure.**
+
+        For applying the methodology to your own project, open a `Q&A` discussion instead.
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: |
+        What problem or friction are you addressing? What is the current methodology doing (or not doing) that prompts this idea?
+      placeholder: |
+        When the team is working under condition X, the current convention Y creates friction Z.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: |
+        What change or addition do you propose? Be specific about what would change — which doc, section, template, or script.
+      placeholder: |
+        Add a fourth Block reason "Awaiting external review" to capture compliance review delays.
+        Update docs/process/issue-lifecycle.md § Project fields and scripts/setup.sh field-create call.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Trade-offs
+      description: |
+        What does this idea cost? What are the downsides, risks, or alternatives you considered?
+      placeholder: |
+        Adds a fourth Block reason category — slight UI clutter, but captures a real workflow state.
+        Alternative considered: extend "Awaiting approval" semantics; rejected because compliance review is a distinct audit category.
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References (optional)
+      description: Links to related discussions, issues, external materials, or prior art.
+      placeholder: |
+        - None

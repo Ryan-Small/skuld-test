@@ -1,0 +1,86 @@
+name: Cut Release
+
+# workflow_dispatch — cuts a new release. Creates the beta/vX.Y.Z branch from
+# main, the vX.Y.Z milestone, and a draft GitHub Release. The draft's notes
+# start sparse; deploy-beta.yml refreshes them as issue PRs merge into the
+# beta branch, and release.yml publishes the draft when the release ships.
+#
+# Tagging candidate issues with the milestone stays manual — a scope decision,
+# not a mechanical step. See docs/process/release.md § Cutting a release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version in vX.Y.Z form (e.g. v1.4.0)"
+        required: true
+
+permissions:
+  contents: write
+  issues: write          # create the milestone; covers milestone reads too
+  pull-requests: read    # release-notes.sh reads PR bodies/labels via gh api
+
+jobs:
+  cut:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        # Needed to invoke scripts/release-notes.sh for the draft's initial notes.
+
+      - name: Cut the release
+        run: |
+          VERSION="$INPUT_VERSION"
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version '$VERSION' is not in vX.Y.Z form."
+            exit 1
+          fi
+          BRANCH="beta/$VERSION"
+
+          if gh api "repos/$REPO/git/ref/heads/$BRANCH" >/dev/null 2>&1; then
+            echo "::error::Branch '$BRANCH' already exists — release already cut?"
+            exit 1
+          fi
+
+          # 1. Branch from main.
+          MAIN_SHA=$(gh api "repos/$REPO/git/ref/heads/main" --jq .object.sha)
+          gh api "repos/$REPO/git/refs" \
+            -f ref="refs/heads/$BRANCH" -f sha="$MAIN_SHA" >/dev/null
+          echo "Created branch $BRANCH"
+
+          # 2. Milestone (idempotent — leave any existing one as is).
+          if gh api "repos/$REPO/milestones?state=all" \
+            --jq ".[] | select(.title == \"$VERSION\")" | grep -q .; then
+            echo "Milestone '$VERSION' already exists — left as is."
+          else
+            gh api "repos/$REPO/milestones" -f title="$VERSION" >/dev/null
+            echo "Created milestone $VERSION"
+          fi
+
+          # 3. Draft Release. Notes are sparse now (no issue PRs merged yet);
+          #    deploy-beta.yml refreshes them as work lands on the beta branch.
+          if gh release view "$VERSION" --repo "$REPO" >/dev/null 2>&1; then
+            echo "Release '$VERSION' already exists — left as is."
+          else
+            NOTES=$(scripts/release-notes.sh "$VERSION" "$BRANCH")
+            printf '%s' "$NOTES" | gh release create "$VERSION" --repo "$REPO" \
+              --draft \
+              --target "$BRANCH" \
+              --title "Release $VERSION" \
+              --notes-file -
+            echo "Created draft Release $VERSION"
+          fi
+
+          {
+            echo "## Release $VERSION cut"
+            echo ""
+            echo "- Branch: \`$BRANCH\`"
+            echo "- Milestone: \`$VERSION\`"
+            echo "- Draft Release created."
+            echo ""
+            echo "Next: tag candidate issues with the \`$VERSION\` milestone."
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

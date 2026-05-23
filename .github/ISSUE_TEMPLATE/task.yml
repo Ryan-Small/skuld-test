@@ -1,0 +1,64 @@
+name: Task
+description: Internal work with no user-visible change — refactor, dependency upgrade, infra, doc, methodology spike
+labels: ["chore"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Use this template for internal work that doesn't change user-visible behavior — refactors, dependency upgrades, infrastructure setup, documentation, methodology experiments.**
+
+        - New or expanded user-visible behavior wanted? → that's a **Feature**.
+        - An existing capability isn't working as it should? → that's a **Bug**.
+
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: Problem statement
+      description: |
+        The problem this work addresses. Cover:
+        - Who is affected (typically the dev team or future maintainers)
+        - What is happening (current state of code, process, or tools)
+        - What it costs (bugs, time, risk, friction, or lost opportunity)
+
+        Describe the cost, not the proposed fix. Avoid: "We need to refactor X..." (that's a solution).
+        The problem statement is the evidence triage uses to assign priority.
+      placeholder: |
+        Builds currently take 8+ minutes because dependencies are downloaded on every
+        CI run. Developers wait, context-switch, and lose momentum across ~15 builds
+        per day, costing the team an hour or more daily.
+    validations:
+      required: true
+
+  - type: textarea
+    id: dod
+    attributes:
+      label: Definition of done
+      description: |
+        Verification conditions specific to this task — what allows a developer to confirm the work achieves its purpose. Each item must be:
+        - **Specific** — names the artifact (file, class, command, dashboard, metric).
+        - **Objective** — can be measured or observed without judgment.
+        - **Binary** — pass/fail with no in-between.
+
+        Items should validate either resolution of the Problem statement OR the absence of regressions introduced by the work.
+
+        Standard project gates (tests pass, CI green, no new lint or deprecation warnings) are assumed and don't need restating.
+
+        Avoid:
+        - Feel-based language ("cleaner," "better," "simpler," "feels right") — none are testable.
+        - Implementation details ("uses pattern X," "imports library Y") — DoD describes outcomes, not means.
+      placeholder: |
+        - [ ] All dependencies in the relevant manifest pinned to the agreed version
+        - [ ] `<build-command>` succeeds locally and in CI with no new warnings
+        - [ ] Security scanner reports no high/critical advisories against the new versions
+        - [ ] Startup or build time stays within 10% of the previous baseline
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References (optional)
+      description: |
+        Links to relevant specs, features, issues, or external materials.
+      placeholder: |
+        - None

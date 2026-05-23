@@ -1,0 +1,65 @@
+name: Feature Request
+description: Propose new or expanded user-visible behavior
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Use this template when proposing new or expanded user-visible behavior.**
+
+        - An existing capability isn't working as it should — broken, mishandles input, missing edge case? → that's a **Bug**.
+        - Internal work (refactor, dependency upgrade, infra, doc) with no user-visible change? → that's a **Task**.
+
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: Problem statement
+      description: |
+        The user or business problem this feature addresses. Cover:
+        - Who is affected
+        - What is happening
+        - Why it hurts
+
+        Describe the pain, not the proposed fix. Avoid: "We need to add X..." (that's a solution).
+        The problem statement is the evidence triage uses to assign priority.
+      placeholder: |
+        Users running long operations get no feedback while they wait. They assume
+        the system has hung, retry (creating duplicates) or abandon the operation,
+        leading to support tickets and lost trust.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: |
+        How will we know this is done? Each criterion must be testable — observable pass/fail. Use Given/When/Then.
+
+        Scenarios should validate either resolution of the Problem statement OR the absence of regressions introduced by the work.
+
+        Avoid: "should work well" (vague), or testing implementation rather than behavior.
+      value: |
+        ### Happy path
+        - [ ] Scenario: <description>
+          - **Given** <precondition>
+          - **When** <action>
+          - **Then** <observable outcome>
+
+        ### Edge cases / failure modes
+        - [ ] Scenario: <description>
+          - **Given** <edge case>
+          - **When** <action>
+          - **Then** <how the system handles it>
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References (optional)
+      description: |
+        Links to related issues, design docs, customer asks, or external articles that informed this request.
+      placeholder: |
+        - None
