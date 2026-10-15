@@ -1,0 +1,171 @@
+name: Feature
+description: |
+  Propose new or expanded capabilities with acceptance criteria for testing.
+type: Feature
+body:
+
+  - type: markdown
+    attributes:
+      value: |
+        Use a **title** that names the activity the user performs, not the change you make. Structure: verb, object, context.
+        - Good: "Finish a loan form in more than one sitting"
+        - Good: "Find an order by the customer's phone number"
+        - Weak: "Add autosave" (names the solution, not the activity)
+        - Weak: "Form improvements" (no verb, no activity)
+
+  - type: textarea
+    attributes:
+      label: Problem statement
+      description: |
+        What is the problem that needs to be addressed? This will help define the scope. Avoid proposing a solution and be specific by avoiding vague and ambiguous words (e.g., as appropriate, etc., and/or, but not limited to, flexible, easy, sufficient, safe, fast, user-friendly).
+        - Who is the user this problem? "Everyone" is not a role.
+        - What do they want to do?
+        - What stops them today, and what happens instead?
+        - What do they do to get around it, and what does that cost them?
+        - How often does this happen, and what does it cost the business?
+        - What do they gain when it is solved, and what measurable signal shows it?
+      placeholder: |
+        A customer fills in a 40-question loan form on a phone. If they stop for a call, the session ends and the form clears. They start again from question one and type the same answers twice. 35% of started forms stop at the halfway point. Support hears "I lost everything" several times a week. With a saved draft, the completion rate of started forms rises from 65% to 80%.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Out of scope
+      description: |
+        What does this change not do? This will help clarify assumptions and avoid scope creep.
+        - What will a reader assume is included, but is not?
+        - Which approaches are rejected, and why?
+      placeholder: |
+        - Attached documents. They have their own storage.
+        - Drafts on shared devices.
+        - A longer session, because customers return the next day.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Constraints
+      description: |
+        What are the design constraints that the solution must adhere to? Unit tests and code reviews should focus on these elements.
+        - What must stay as it is: interfaces, stored data, dependencies?
+        - What existing component or pattern must this reuse?
+        - What rules apply to security, privacy, or compatibility?
+      placeholder: |
+        - A draft never leaves the customer's account.
+        - Store no personal data beyond what the form already collects.
+        - Reuse the autosave component from the profile page.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        <details>
+        <summary>Acceptance criteria example</summary>
+
+        ```gherkin
+        Feature: Finish a loan form in more than one sitting
+
+          When a customer leaves the loan form before submitting, the system shall keep a draft for 30 days.
+            # Rationale: Customers stop for calls and return the next day. Lost answers are the top complaint.
+
+            Scenario: A customer returns the next day
+              Given a customer has answered 20 of 40 questions
+              When the customer opens the loan form the next day
+              Then the 20 answers are present and the form opens at question 21
+
+          If a draft is older than 30 days, then the system shall expire it and start a new form.
+
+            Scenario: A draft expires
+              Given a customer has a draft that is 31 days old
+              When the customer opens the loan form
+              Then the customer sees that the draft expired
+              And a new form starts at question one
+        ```
+        </details>
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: |
+        Each requirement is one Rule, written as one EARS sentence with an ID. Each rule has one scenario. Each failure path is its own rule with its own scenario.
+        What must be true when this work is done?
+        For each rule, what happens when the input is wrong, missing, or repeated?
+        Which outcomes can a person observe without reading code?
+        Which criteria cannot run as a test, and who checks them? Tag those scenarios @manual and name the checker in the title.
+        Writing rules: 3 to 5 steps per scenario. Declarative words, not clicks. More than 6 scenarios means split the issue.
+        After approval: edit this block only with a comment that states the reason and the affected scenarios.
+      render: gherkin
+      value: |
+        Feature: <the activity, same words as the title>
+
+          Rule: R1. When <trigger>, the <system> shall <response>.
+            # Rationale: <why this rule exists. Optional.>
+
+            Scenario: <only what differs from the other scenarios>
+              Given <the preconditions, all of them and no more>
+              When <one event, in domain words, no clicks or fields>
+              Then <one outcome a user or an operator can observe>
+
+          Rule: R2. If <fault or unexpected condition>, then the <system> shall <response>.
+
+            Scenario: <the failure path>
+              Given <the preconditions>
+              When <the fault occurs>
+              Then <the handling a user or an operator can observe>
+
+          
+      description: |
+        How will we know this is done? Each criterion must be testable — observable pass/fail. Use Given/When/Then.
+
+        Scenarios should validate either resolution of the Problem statement OR the absence of regressions introduced by the work.
+
+        Avoid: "should work well" (vague), or testing implementation rather than behavior.
+      value: |
+        ### Happy path
+        - [ ] Scenario: <description>
+          - **Given** <precondition>
+          - **When** <action>
+          - **Then** <observable outcome>
+
+        ### Edge cases / failure modes
+        - [ ] Scenario: <description>
+          - **Given** <edge case>
+          - **When** <action>
+          - **Then** <how the system handles it>
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: References
+      description: |
+        (Optional) Material that supports this request. Put a reference in the field it supports first. List it here only when no other field fits.
+        - Where in the product does this happen: page, screen, or flow?
+        - Which issues or pull requests relate to this request?
+        - Which documents, policies, or attachments shape it?
+      placeholder: |
+        - The loan form page, where the questions live.
+        - Pull request #412: the autosave on the profile page.
+        - Privacy policy, section 4: retention of unsubmitted data.
+      value: |
+        - None
+
+  - type: textarea
+    attributes:
+      label: Open questions and assumptions
+      description: |
+        Which questions or assumptions remain open? Write "None" if empty. Do not start work while a blocking question is open.
+        
+        - What did you assume while writing this?
+        - Which questions block work, and which can wait?
+        - For each item, who answers it, and by when?
+      placeholder: |
+        - Is 30 days the right retention? Owner: product lead. By: 2026-10-20. Not blocking.
+          - Assume: a customer has one draft per loan form. Confirm with: support lead.
+      value: |
+        - None
+    validations:
+      required: true
