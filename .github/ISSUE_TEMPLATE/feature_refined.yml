@@ -95,17 +95,14 @@ body:
     attributes:
       label: Acceptance criteria
       description: |
-        Each requirement is one Rule, written as one EARS sentence. Each rule has one scenario. Each failure path is its own rule with its own scenario.
-        How will we know this is done? Each criterion must be testable — observable pass/fail. Use Given/When/Then.
+        How will we know this is done? Each requirement is one Rule, written as one [EARS sentence](https://alistairmavin.com/ears/). Each rule has one [Gherkin](https://cucumber.io/docs/gherkin/reference) scenario that a test can run. Each failure path is its own rule with its own scenario. A scenario proves one of two things: the problem is solved, or no regression was introduced.
         
-        For each rule, what happens when the input is wrong, missing, or repeated?
-        Scenarios should validate either resolution of the Problem statement OR the absence of regressions introduced by the work.
-        Which outcomes can a person observe without reading code?
-        Which criteria cannot run as a test, and who checks them? Tag those scenarios @manual and name the checker in the title.
+        - What must be true when this work is done?
+        - For each rule, what happens when the input is wrong, missing, or repeated?
+        - Which outcomes can a person observe without reading code?
+        - Which criteria cannot run as a test, and who checks them? Tag those scenarios @manual and name the checker in the title.
+
         Writing rules: 3 to 5 steps per scenario. Declarative words, not clicks. More than 6 scenarios means split the issue.
-        After approval: edit this block only with a comment that states the reason and the affected scenarios.
-        Gherkin syntax: https://cucumber.io/docs/gherkin/reference
-        EARS sentence forms: https://alistairmavin.com/ears/
       render: gherkin
       value: |
         Feature: <the activity, same words as the title>
