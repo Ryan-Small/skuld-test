@@ -8,17 +8,20 @@ body:
     attributes:
       value: |
         Use a **title** that names the activity the user performs, not the change you make. Structure: verb, object, context.
-        - Good: "Finish a loan form in more than one sitting"
+        - Good: "Finish a loan form in more than one sitting" (finish | a loan form | in more than one sitting)
         - Good: "Find an order by the customer's phone number"
         - Weak: "Add autosave" (names the solution, not the activity)
         - Weak: "Form improvements" (no verb, no activity)
 
+        In every field, avoid vague words: as appropriate, etc., and/or, but not limited to, flexible, easy, sufficient, safe, fast, user-friendly.
+
   - type: textarea
+    id: problem
     attributes:
       label: Problem statement
       description: |
-        What is the problem that needs to be addressed? This will help define the scope. Avoid proposing a solution and be specific by avoiding vague and ambiguous words (e.g., as appropriate, etc., and/or, but not limited to, flexible, easy, sufficient, safe, fast, user-friendly).
-        - Who is the user this problem? "Everyone" is not a role.
+        What problem does this change solve? State the problem, not the solution. Use specific words.
+        - Who has this problem? Name a role or a situation. "Everyone" is not a role.
         - What do they want to do?
         - What stops them today, and what happens instead?
         - What do they do to get around it, and what does that cost them?
@@ -30,6 +33,7 @@ body:
       required: true
 
   - type: textarea
+    id: out-of-scope
     attributes:
       label: Out of scope
       description: |
@@ -44,13 +48,14 @@ body:
       required: true
 
   - type: textarea
+    id: constraints
     attributes:
       label: Constraints
       description: |
-        What are the design constraints that the solution must adhere to? Unit tests and code reviews should focus on these elements.
+        What rules must the build obey that a test cannot see? A reviewer checks these. A limit a test can measure belongs in the acceptance criteria. Write "None" if there are none.
         - What must stay as it is: interfaces, stored data, dependencies?
         - What existing component or pattern must this reuse?
-        - What rules apply to security, privacy, or compatibility?
+        - What rules apply: law, regulation, security, privacy, compatibility?
       placeholder: |
         - A draft never leaves the customer's account.
         - Store no personal data beyond what the form already collects.
@@ -67,7 +72,7 @@ body:
         ```gherkin
         Feature: Finish a loan form in more than one sitting
 
-          When a customer leaves the loan form before submitting, the system shall keep a draft for 30 days.
+          Rule: When a customer leaves the loan form before submitting, the system shall keep a draft for 30 days.
             # Rationale: Customers stop for calls and return the next day. Lost answers are the top complaint.
 
             Scenario: A customer returns the next day
@@ -75,7 +80,7 @@ body:
               When the customer opens the loan form the next day
               Then the 20 answers are present and the form opens at question 21
 
-          If a draft is older than 30 days, then the system shall expire it and start a new form.
+          Rule: If a draft is older than 30 days, then the system shall expire it and start a new form.
 
             Scenario: A draft expires
               Given a customer has a draft that is 31 days old
@@ -90,18 +95,22 @@ body:
     attributes:
       label: Acceptance criteria
       description: |
-        Each requirement is one Rule, written as one EARS sentence with an ID. Each rule has one scenario. Each failure path is its own rule with its own scenario.
-        What must be true when this work is done?
+        Each requirement is one Rule, written as one EARS sentence. Each rule has one scenario. Each failure path is its own rule with its own scenario.
+        How will we know this is done? Each criterion must be testable — observable pass/fail. Use Given/When/Then.
+        
         For each rule, what happens when the input is wrong, missing, or repeated?
+        Scenarios should validate either resolution of the Problem statement OR the absence of regressions introduced by the work.
         Which outcomes can a person observe without reading code?
         Which criteria cannot run as a test, and who checks them? Tag those scenarios @manual and name the checker in the title.
         Writing rules: 3 to 5 steps per scenario. Declarative words, not clicks. More than 6 scenarios means split the issue.
         After approval: edit this block only with a comment that states the reason and the affected scenarios.
+        Gherkin syntax: https://cucumber.io/docs/gherkin/reference
+        EARS sentence forms: https://alistairmavin.com/ears/
       render: gherkin
       value: |
         Feature: <the activity, same words as the title>
 
-          Rule: R1. When <trigger>, the <system> shall <response>.
+          Rule: When <trigger>, the <system> shall <response>.
             # Rationale: <why this rule exists. Optional.>
 
             Scenario: <only what differs from the other scenarios>
@@ -109,7 +118,7 @@ body:
               When <one event, in domain words, no clicks or fields>
               Then <one outcome a user or an operator can observe>
 
-          Rule: R2. If <fault or unexpected condition>, then the <system> shall <response>.
+          Rule: If <fault or unexpected condition>, then the <system> shall <response>.
 
             Scenario: <the failure path>
               Given <the preconditions>
@@ -117,28 +126,11 @@ body:
               Then <the handling a user or an operator can observe>
 
           
-      description: |
-        How will we know this is done? Each criterion must be testable — observable pass/fail. Use Given/When/Then.
-
-        Scenarios should validate either resolution of the Problem statement OR the absence of regressions introduced by the work.
-
-        Avoid: "should work well" (vague), or testing implementation rather than behavior.
-      value: |
-        ### Happy path
-        - [ ] Scenario: <description>
-          - **Given** <precondition>
-          - **When** <action>
-          - **Then** <observable outcome>
-
-        ### Edge cases / failure modes
-        - [ ] Scenario: <description>
-          - **Given** <edge case>
-          - **When** <action>
-          - **Then** <how the system handles it>
     validations:
       required: true
 
   - type: textarea
+    id: references
     attributes:
       label: References
       description: |
@@ -154,17 +146,19 @@ body:
         - None
 
   - type: textarea
+    id: open-questions
     attributes:
       label: Open questions and assumptions
       description: |
-        Which questions or assumptions remain open? Write "None" if empty. Do not start work while a blocking question is open.
+        Which questions or assumptions remain open? Write "None" if empty. Do not start work while a blocking question is open. Nest a working assumption under its question. When a question is answered, put the answer in the field it belongs to and delete the question here.
         
         - What did you assume while writing this?
         - Which questions block work, and which can wait?
         - For each item, who answers it, and by when?
       placeholder: |
-        - Is 30 days the right retention? Owner: product lead. By: 2026-10-20. Not blocking.
-          - Assume: a customer has one draft per loan form. Confirm with: support lead.
+        - Q: Is 30 days the right retention? Owner: product lead. By: 2026-10-20. Not blocking.
+          - Assume: 30 days until answered.
+        - Assume: a customer has one draft per loan form. Confirm with: support lead.
       value: |
         - None
     validations:
